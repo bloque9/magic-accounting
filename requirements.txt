@@ -1,0 +1,2 @@
+xml2obj==0.1
+pyexcel-xlsx==0.2.3
