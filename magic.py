@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from xml2obj import xml2obj
 from pyexcel_xlsx import save_data
 from collections import OrderedDict
 
+import xmltodict
+import json
 
 data = OrderedDict()
 
@@ -17,63 +18,111 @@ os.chdir(path)
 # Obtenemos los nombres de los archivos
 archivos = os.listdir(path)
 
-lista = [['Año','Mes', 'Dia', 'Factura', 'Proveedor', 'Lugar', 'Concepto', 'Total', 'IVA','Archivo']]
-total = 0
+lista = [[u'Año','Mes', 'Dia', 'Hora', 'Factura', 'Proveedor', 'Lugar', 'Concepto', 'Total', 'IVA','Archivo']]
+to = 0
 
 # Recorremos todos los archivos
 for item in archivos:
     
     # Obtenemos la extencion del archivo
     try:
-        extencion = item.split('.')[1]
+        s = item.split('.')
+        extencion = s[len(s)-1]
     except IndexError:
         extencion =''
 
     # Si el archivo es xml
     if extencion =='xml' or extencion =='XML':
-        total=total + 1
+        to=to + 1
 
         # Leemos los datos
         xml = open(item,'r')
-        factura = xml2obj(xml.read())
+        factura = xmltodict.parse(xml)
+        factura = factura['cfdi:Comprobante']
 
-        # Si tiene serie la obtenemos
-        try:
-            serie = factura.serie.replace('-','') + '-' + factura.folio
-        except (TypeError, AttributeError):
-            serie = factura.folio
-        
-        res = ''
-        expedidoen = ''
+        if factura['@Version']=='3.3':
+            # folio
+            try:
+                folio = factura['@Folio']
+            except:
+                folio = 'na'
+            
+            # codigo postal
+            try:
+                cp = factura['@LugarExpedicion']
+            except:
+                cp = 'na'
 
-        # Agregamos los conceptos
-        try:
-            for concepto in factura.cfdi_Conceptos.cfdi_Concepto:
-                res = res + concepto.descripcion + ', '
-        except AttributeError:
-            print(item + ' Error Atribute')
+            # fecha
+            try:
+                fecha = factura['@Fecha']
+                f = fecha.split('T')
+                fecha = f[0].split('-')
+                anio = fecha[0]
+                mes = fecha[1]
+                dia = fecha[2]
+                hora = f[1]
+            except:
+                anio = 'na'
+                mes = 'na'
+                dia = 'na'
+                hora = 'na'
 
-        # Lugar
-        try:
-            expedidoen = factura.LugarExpedicion
-        except (AttributeError, TypeError):
-            print(item + ' error en expedido')
+            # conceptos
+            try:
+                descripcion = ''
+                for concepto in factura['cfdi:Conceptos']['cfdi:Concepto']:
+                    descripcion = descripcion + concepto['@Descripcion'] + ', '
+            except:
+                descripcion = 'na'
 
-        # lo agregamos a la lista de datos
-        try:
-            lista.append([factura.fecha[0:4], factura.fecha[5:7], factura.fecha[8:10], serie, factura.cfdi_Emisor.nombre, expedidoen,
-             res, float(factura.total), float(factura.cfdi_Impuestos.totalImpuestosTrasladados), item ])
-        except (TypeError, AttributeError):
-            print(item + ' TypeError')
+            # importe
+            try:
+                total = factura['@Total']
+            except:
+                total = 'na'
+
+            # iva
+            try:
+                iva = factura['cfdi:Impuestos']['@TotalImpuestosTrasladados']
+            except:
+                iva = '0'
+
+            # emisor
+            try:
+                emisor = factura['cfdi:Emisor']['@Nombre']
+            except:
+                emisor = 'na'
+
+            # lo agregamos a la lista de datos
+            try:
+                lista.append([
+                    anio, 
+                    mes, 
+                    dia, 
+                    hora, 
+                    folio, 
+                    emisor, 
+                    cp,
+                    descripcion, 
+                    float(total), 
+                    float(iva), 
+                    item ])
+            except:
+                print(item + ' TypeError')
+        else:
+            print(item + ' ErrorVersion')
+
 
 # Agregamos le total de registros
-lista.append(['total', total])
+lista.append(['total', to])
 
 # Guardamos los datos
 data.update({"MagicAccounting": lista })
 save_data("Contabilidad.xlsx", data)
 
 # Mensajes de exito
-print("Se han escrito " + str(total) + " registros")
+print("CFDI version 3.3")
+print("Se han escrito " + str(to) + " registros")
 print("Presione una tecla para continuar")
 raw_input()

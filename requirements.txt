@@ -1,2 +1,3 @@
-xml2obj==0.1
-pyexcel-xlsx==0.2.3
+xmltodict>=0.11.0
+pyexcel-xlsx>=0.2.3
+pyexcel-xlsxw>=0.2.3

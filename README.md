@@ -1,5 +1,5 @@
-# magic-accounting
-Es un script para pasar datos de un xml a csv
+# magic-accounting 
+Es un script para pasar datos de un cfdi de mexico (formato de factura xml) a csv, para facilitar tu contabilidad.
 
 # Dependencias 
 pip install -r requirements.txt
