@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import sys
 from pyexcel_xlsx import save_data
 from collections import OrderedDict
 
@@ -36,8 +37,13 @@ for item in archivos:
         to=to + 1
 
         # Leemos los datos
-        xml = open(item,'r')
+        if sys.version_info[0] < 3:
+            xml = open(item,'r')
+        else:
+            xml = open(item, "rb")
+
         factura = xmltodict.parse(xml)
+
         factura = factura['cfdi:Comprobante']
 
         if factura['@Version']=='3.3':
@@ -125,4 +131,7 @@ save_data("Contabilidad.xlsx", data)
 print("CFDI version 3.3")
 print("Se han escrito " + str(to) + " registros")
 print("Presione una tecla para continuar")
-raw_input()
+if sys.version_info[0] < 3:
+    raw_input()
+else:
+    input()
